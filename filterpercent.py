@@ -2,7 +2,8 @@ import pandas as pd
 
 
 # df = pd.read_excel('File-Name.xlsx')
-
+print("Welcome")
+no = int(input("Enter the no. after which to filtered: "))
 # Sample data
 data = {
     "Roll No": [1, 2, 3, 4, 5],
@@ -23,10 +24,12 @@ subjects = ["Math", "Science", "English", "History", "Computer Science"]
 high_scores={}
 for subject in subjects:
 
-    high_scores[subject] = (df[subject] > 90).sum()
+    high_scores[subject] = (df[subject] > no).sum()
 
 # Create a new DataFrame from the result
-high_scores_df = pd.DataFrame(list(high_scores.items()), columns=['Subject', 'Above_90'])
+filtername = "Above " + str(no)
+
+high_scores_df = pd.DataFrame(list(high_scores.items()), columns=['Subject', filtername])
 
 print(high_scores_df)
 
