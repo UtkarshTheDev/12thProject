@@ -10,11 +10,34 @@ df = df.iloc[1:]
 # Create a dictionary for 'out of marks'
 outofmarks_dict = outofmarks_row.to_dict()
 
-print("Welcome")
-# no = int(input("Enter the Percentage after which to filtered: "))
-
 # Define the percentage categories
 categories = [90, 75, 50, 33]
+
+print("Welcome")
+
+# Prompt the user for the percentage categories
+print("Enter the percentage categories after which to filter.")
+print("For default categories, press Enter.")
+print("Default: 90,75,50,33")
+
+# Get user input
+user_input = input("Enter the percentage categories (comma-separated, or press Enter for default): ")
+
+# Process user input
+if user_input.strip() == "":
+    categories = [90, 75, 50, 33]
+else:
+    try:
+        categories = sorted([int(x.strip()) for x in user_input.split(',') if x.strip().isdigit()], reverse=True)
+        if not categories:
+            print("No valid percentages entered. Using default categories.")
+            categories = [90, 75, 50, 33]
+    except ValueError:
+        print("Invalid input. Using default categories.")
+        categories = [90, 75, 50, 33]
+
+print(f"\nUsing categories: {categories}")
+
 
 # Exclude 'Roll No' and 'Name' columns
 df_numeric = df.select_dtypes(include='number')
@@ -31,12 +54,12 @@ results = []
 for subject in subjects:
     out_of_marks = float(outofmarks_dict.get(subject, 80))
     subject_result = {'Subject': subject}
+    print(f"\n--- {subject} (Out of: {out_of_marks}) ---")
     
     for percentage in categories:
-        # Calculate the marks threshold based on the percentage
         marks_threshold = (percentage / 100) * out_of_marks
-        # Count students above the threshold
-        count_above = (df[subject].astype(float) > marks_threshold).sum()
+        marks = df[subject].astype(float)
+        count_above = (marks > marks_threshold).sum()
         subject_result[f'Above {percentage}%'] = count_above
 
     # For Fail
