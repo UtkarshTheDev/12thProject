@@ -1,8 +1,10 @@
 import pandas as pd
+from datahandler import extractOutofMarks
 
 def filterByPercent(df):
     categories = [90, 75, 50, 33]
 
+    outofmarks_dict = extractOutofMarks(df)
     # Get user input
     user_input = input("Enter the percentage categories (comma-separated, or press Enter for default): ")
 
