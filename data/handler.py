@@ -15,3 +15,7 @@ def excludeRollNoAndName(df):
     if 'Roll No' in df_numeric.columns:
         df_numeric = df_numeric.drop(columns=['Roll No'])
     return df_numeric
+
+def extractDataFromExcel(file_path):
+    df = pd.read_excel(file_path)
+    return df
