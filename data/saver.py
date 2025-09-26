@@ -49,10 +49,21 @@ def save_class_results_to_csv(file_path, sheet_name=None, base_dir="user-data"):
     percentage_csv = out_dir / "percentage.csv"
     result_df.to_csv(result_csv, index=False)  # Save without row indices
     percentage_df.to_csv(percentage_csv, index=False)
-
     return out_dir
 
 def save_and_report(file_path, sheet_name=None, base_dir="user-data"):
     # This function saves the CSVs and prints where they were saved.
     out_dir = save_class_results_to_csv(file_path, sheet_name=sheet_name, base_dir=base_dir)
     print(f"Saved/updated CSVs in: {out_dir}")
+
+
+def save_grouped_csv_for_source(source_csv_path, grouped_df):
+    """
+    Save the grouped summary DataFrame as grouped.csv in the same folder
+    where the source CSV (e.g., percentage.csv) resides.
+    Returns the written Path.
+    """
+    out_dir = Path(source_csv_path).parent
+    out_path = out_dir / "grouped.csv"
+    grouped_df.to_csv(out_path, index=False)
+    return out_path

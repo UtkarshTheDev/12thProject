@@ -1,5 +1,6 @@
 import pandas as pd
 from ui.select_data import get_data_file_path
+from data.saver import save_grouped_csv_for_source
 
 def create_grouping_ranges(thresholds):
     # This function creates ranges for grouping percentages.
@@ -118,10 +119,17 @@ def run_groupByPercent_interactive(base_dir='user-data', filename='percentage.cs
     file path (default: percentage.csv), then run groupByPercent on it.
 
     Returns (df_original, summary_df). If selection is cancelled or file missing,
-    returns (None, None).
     """
     path = get_data_file_path(filename, base_dir=base_dir)
     if not path:
         print('No file selected or file not present.')
         return None, None
-    return groupByPercent(path)
+    df, summary_df = groupByPercent(path)
+    # Auto-save grouped summary next to the source CSV
+    try:
+        if summary_df is not None and not summary_df.empty:
+            out_path = save_grouped_csv_for_source(path, summary_df)
+            print(f"Saved grouped summary to: {out_path}")
+    except Exception as e:
+        print("Could not save grouped.csv:", e)
+    return df, summary_df
