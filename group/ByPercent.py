@@ -1,4 +1,5 @@
 import pandas as pd
+from ui.select_data import get_data_file_path
 
 def create_grouping_ranges(thresholds):
     # This function creates ranges for grouping percentages.
@@ -103,10 +104,24 @@ def load_percentage_csv(csv_path):
 
 def get_subjects_from_percentage_df(df):
     # This function finds the subject names from the column names.
-    # Columns like "Math_%" mean subject is "Math".
     subjects = []
     for col in df.columns:
         if col.endswith('_%') and col != 'Overall_Percentage':
             # Remove the "_%" to get subject name
             subjects.append(col[:-2])
     return subjects
+
+
+def run_groupByPercent_interactive(base_dir='user-data', filename='percentage.csv'):
+    """
+    Open the arrow-key selector to choose Class and Exam, resolve the requested
+    file path (default: percentage.csv), then run groupByPercent on it.
+
+    Returns (df_original, summary_df). If selection is cancelled or file missing,
+    returns (None, None).
+    """
+    path = get_data_file_path(filename, base_dir=base_dir)
+    if not path:
+        print('No file selected or file not present.')
+        return None, None
+    return groupByPercent(path)
