@@ -33,7 +33,8 @@ def find_row_with_text(df, text_to_find, max_rows=30):
         # Get the row and convert to strings, filling empty cells with ""
         row_vals = []
         for val in df.iloc[i]:
-            row_vals.append(str(val).fillna(""))
+            # Handle NaN/None before converting to string
+            row_vals.append("" if pd.isna(val) else str(val))
         # Check if any cell in this row contains the text (case insensitive)
         found = False
         for v in row_vals:
@@ -126,7 +127,8 @@ def parse_class_name(df, class_row):
         return None
     row = []
     for val in df.iloc[class_row]:
-        row.append(str(val).fillna(""))
+        # Handle NaN/None before converting to string
+        row.append("" if pd.isna(val) else str(val))
     # First, look for a cell starting with "CLASS"
     for idx in range(len(row)):
         val = row[idx]
