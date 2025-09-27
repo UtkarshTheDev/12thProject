@@ -20,7 +20,47 @@ def run_pipeline():
         print("No file path provided. Exiting.")
         return
 
-    sheet_name = input("Sheet name (press Enter for default/first sheet): ").strip() or None
+    # Try to display available sheet names to help the user choose
+    try:
+        xls = pd.ExcelFile(file_path)
+        if xls.sheet_names:
+            print("\nAvailable sheets in this workbook:")
+            for i, nm in enumerate(xls.sheet_names, 1):
+                print(f"  {i}. {nm}")
+    except Exception as e:
+        # Non-fatal; continue to prompt without listing
+        print(f"(Could not read sheet names: {e})")
+
+    raw_sheet = input("Sheet name or number (press Enter for first sheet): ").strip()
+    sheet_name = None
+    try:
+        # If user typed a number, treat it as 1-based index
+        if raw_sheet.isdigit() and 'xls' in locals():
+            idx = int(raw_sheet) - 1
+            if 0 <= idx < len(xls.sheet_names):
+                sheet_name = xls.sheet_names[idx]
+        elif raw_sheet and 'xls' in locals():
+            # Try exact match
+            if raw_sheet in xls.sheet_names:
+                sheet_name = raw_sheet
+            else:
+                # Try trimmed/case-insensitive matches
+                trimmed = raw_sheet.strip()
+                lower_map = {s.lower(): s for s in xls.sheet_names}
+                if trimmed.lower() in lower_map:
+                    sheet_name = lower_map[trimmed.lower()]
+                else:
+                    # Try startswith (case-insensitive)
+                    candidates = [s for s in xls.sheet_names if s.lower().startswith(trimmed.lower())]
+                    if candidates:
+                        sheet_name = candidates[0]
+        # If still None and we have sheets, fall back to first
+        if sheet_name is None and 'xls' in locals() and xls.sheet_names:
+            print("No matching sheet found. Using first sheet.")
+            sheet_name = xls.sheet_names[0]
+    except Exception:
+        # As a last resort, let pandas default to first sheet by passing None
+        sheet_name = None
     base_dir = input("Base directory for saving CSVs (press Enter for 'user-data'): ").strip() or "user-data"
 
     try:

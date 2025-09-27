@@ -10,7 +10,11 @@ def detect_subject_columns(df, header_row):
     # Subjects are between RollNo (column 0-1) and Total.
     headers = []
     for val in df.iloc[header_row]:
-        headers.append(str(val).fillna(""))
+        # Safely handle NaN/None before converting to string
+        if val is None or (isinstance(val, float) and np.isnan(val)):
+            headers.append("")
+        else:
+            headers.append(str(val))
     subjects = []
     # subject_to_cols will map subject name to its column indices for marks and percent
     subject_to_cols = {}
