@@ -75,25 +75,47 @@ def groupByPercent(csv_path):
     results = []
     for subject in subjects:
         col = f"{subject}_%"  # Column name like "Math_%"
-        print(f"\n--- {subject} (Using % column: {col}) ---")
         # Add a new column for the group
         df[f"{subject}_group"] = df[col].apply(get_group)
         # Count how many in each group
         group_counts = df[f"{subject}_group"].value_counts().sort_index(ascending=False)
         subject_result = {'Subject': subject}
         for group, count in group_counts.items():
-            print(f"{group}: {count} students")
             subject_result[group] = count
         results.append(subject_result)
 
     summary_df = pd.DataFrame(results).fillna(0)
-    # Sort the columns by the group start number descending
-    other_cols = []
+    # Rename N/A bucket to Fail
+    if 'N/A' in summary_df.columns:
+        summary_df = summary_df.rename(columns={'N/A': 'Fail'})
+    # Sort numeric band columns by descending start value and keep Fail (and any other non-band) at the end
+    band_cols = []
+    other_labels = []
     for col in summary_df.columns:
-        if col != 'Subject':
-            other_cols.append(col)
-    other_cols_sorted = sorted(other_cols, key=lambda x: int(x.split('-')[0]) if '-' in x and x.split('-')[0].isdigit() else 0, reverse=True)
-    summary_df = summary_df[['Subject'] + other_cols_sorted]
+        if col == 'Subject':
+            continue
+        if '-' in col and col.split('-')[0].isdigit():
+            band_cols.append(col)
+        else:
+            other_labels.append(col)
+    band_cols_sorted = sorted(band_cols, key=lambda x: int(x.split('-')[0]), reverse=True)
+    # Ensure 'Fail' shows at the end if present
+    tail_labels = [c for c in other_labels if c != 'Fail'] + (['Fail'] if 'Fail' in other_labels else [])
+    summary_df = summary_df[['Subject'] + band_cols_sorted + tail_labels]
+
+    # Print a clean, minimal table
+    print("\nGrouped Summary (counts):")
+    try:
+        # Ensure integer-looking values don't show as floats
+        display_df = summary_df.copy()
+        for c in display_df.columns:
+            if c != 'Subject':
+                display_df[c] = display_df[c].astype(int)
+        print(display_df.to_string(index=False))
+    except Exception:
+        # Fallback simple print
+        print(summary_df.to_string(index=False))
+
     return df, summary_df
 
 
