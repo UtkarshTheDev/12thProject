@@ -1,6 +1,6 @@
-"""
-Simple terminal UI to select Class and Exam and return the percentage.csv path.
+"""Simple terminal UI to select Class and Exam and return the percentage.csv path.
 - Uses arrow keys (Up/Down) to navigate, Enter to select, 'q' to quit.
+- Press 'd' to delete selected exam data, 'D' (Shift+d) to delete entire class.
 - Scans the folder structure: user-data/<Class>/<Exam>/percentage.csv
 - Designed to be beginner-friendly and easy to read.
 
@@ -15,6 +15,7 @@ Use from code:
 
 import os
 import curses
+import shutil
 
 
 def list_classes(base_dir):
@@ -38,12 +39,15 @@ def list_exams(base_dir, class_name):
     return items
 
 
-def draw_menu(stdscr, title, options, index):
+def draw_menu(stdscr, title, options, index, show_delete_help=False):
     stdscr.clear()
     h, w = stdscr.getmaxyx()
     title_str = title
     stdscr.addstr(1, 2, title_str)
-    stdscr.addstr(2, 2, "Use Up/Down arrows and Enter. Press q to quit.")
+    help_line = "Use Up/Down arrows and Enter. Press q to quit."
+    if show_delete_help:
+        help_line += " Press 'd' to delete."
+    stdscr.addstr(2, 2, help_line)
     top = 4
     for i, opt in enumerate(options):
         marker = ">" if i == index else " "
@@ -53,12 +57,40 @@ def draw_menu(stdscr, title, options, index):
     stdscr.refresh()
 
 
-def select_from_list(stdscr, title, options):
+def confirm_delete(stdscr, item_name, item_type):
+    """Show confirmation dialog for deletion."""
+    stdscr.clear()
+    h, w = stdscr.getmaxyx()
+    msg1 = f"Are you sure you want to delete {item_type}: {item_name}?"
+    msg2 = "This action cannot be undone!"
+    msg3 = "Press 'y' to confirm, any other key to cancel."
+    
+    stdscr.addstr(h // 2 - 2, 2, msg1)
+    stdscr.addstr(h // 2 - 1, 2, msg2)
+    stdscr.addstr(h // 2 + 1, 2, msg3)
+    stdscr.refresh()
+    
+    key = stdscr.getch()
+    return key in (ord('y'), ord('Y'))
+
+
+def delete_directory(path):
+    """Delete a directory and all its contents."""
+    try:
+        if os.path.exists(path):
+            shutil.rmtree(path)
+            return True
+    except Exception as e:
+        print(f"Error deleting: {e}")
+    return False
+
+
+def select_from_list(stdscr, title, options, allow_delete=False, delete_callback=None):
     if not options:
         return None
     index = 0
     while True:
-        draw_menu(stdscr, title, options, index)
+        draw_menu(stdscr, title, options, index, show_delete_help=allow_delete)
         key = stdscr.getch()
         if key in (curses.KEY_UP, ord('k')):
             index = (index - 1) % len(options)
@@ -68,6 +100,18 @@ def select_from_list(stdscr, title, options):
             return options[index]
         elif key in (ord('q'), ord('Q')):
             return None
+        elif allow_delete and key in (ord('d'), ord('D')):
+            if delete_callback:
+                item_to_delete = options[index]
+                item_type = "class" if key == ord('D') else "exam"
+                if confirm_delete(stdscr, item_to_delete, item_type):
+                    success = delete_callback(item_to_delete)
+                    if success:
+                        options.pop(index)
+                        if not options:
+                            return None
+                        if index >= len(options):
+                            index = len(options) - 1
 
 
 def _curses_select(base_dir):
@@ -76,7 +120,13 @@ def _curses_select(base_dir):
         print("No classes found in", base_dir)
         return None
 
-    selected_class = curses.wrapper(select_from_list, "Select Class", classes)
+    # Delete callback for classes (Shift+D)
+    def delete_class(class_name):
+        class_path = os.path.join(base_dir, class_name)
+        return delete_directory(class_path)
+
+    selected_class = curses.wrapper(select_from_list, "Select Class (Press 'D' to delete class)", classes, 
+                                   allow_delete=True, delete_callback=delete_class)
     if not selected_class:
         return None
 
@@ -85,7 +135,13 @@ def _curses_select(base_dir):
         print("No exams found for class:", selected_class)
         return None
 
-    selected_exam = curses.wrapper(select_from_list, f"Select Exam for {selected_class}", exams)
+    # Delete callback for exams (d)
+    def delete_exam(exam_name):
+        exam_path = os.path.join(base_dir, selected_class, exam_name)
+        return delete_directory(exam_path)
+
+    selected_exam = curses.wrapper(select_from_list, f"Select Exam for {selected_class} (Press 'd' to delete exam)", exams,
+                                  allow_delete=True, delete_callback=delete_exam)
     if not selected_exam:
         return None
 
