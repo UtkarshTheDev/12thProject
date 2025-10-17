@@ -1,8 +1,3 @@
-# This is a single Python script that merges all the functionality of the project.
-# It's designed to be easy to understand for beginners, with clear comments and simple code.
-
-# First, we import all the necessary libraries that our program will use.
-# These libraries help us with tasks like working with files, handling data, and creating user interfaces.
 import os
 import sys
 import shutil
@@ -27,8 +22,6 @@ def coerce_number(x):
         if x is None:
             return np.nan
         s = str(x).strip()
-        if s == "" or s.upper() in ("NA", "N/A", "#DIV/0!", "-", "AB", "A"):
-            return np.nan
         return float(s)
     except (ValueError, TypeError):
         return np.nan
@@ -40,12 +33,13 @@ def sanitize_for_path(name):
     """
     if not name:
         return "UNKNOWN"
-    return str(name).strip().replace("/", "-").replace("\", "-")
+    return str(name).strip().replace("/", "-").replace("\\", "-").replace(" ", "_")
 
 def find_row_with_text(df, text_to_find, max_rows=30):
     """
     This function looks for a specific piece of text in the first few rows of our data.
     It helps us find important rows, like the one containing the class name or exam name.
+{{ ... }}
     """
     text_lower = text_to_find.lower()
     for i in range(min(max_rows, len(df))):
@@ -545,8 +539,9 @@ def main():
         print("  [1] Upload Excel data")
         print("  [2] See grouped marks data")
         print("  [3] View class data")
+        print("  [clear] Clear screen")
         print("  [q] Quit")
-        choice = input("Enter your choice (1/2/3 or q): ").strip().lower()
+        choice = input("Enter your choice (1/2/3, clear, or q): ").strip().lower()
 
         if choice == "1":
             run_upload_pipeline()
@@ -554,6 +549,9 @@ def main():
             run_groupByPercent_interactive()
         elif choice == "3":
             run_view_data_flow()
+        elif choice == "clear":
+            os.system('cls' if os.name == 'nt' else 'clear')
+            print("\n=== Welcome to the Class Results CLI ===")
         elif choice in ("q", "quit", "exit"):
             print("Goodbye!")
             break
