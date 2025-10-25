@@ -3,6 +3,17 @@ from pathlib import Path
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+# [[BANNER-CODE-START]]
+# This section imports and displays the title and footer banners.
+# You can safely remove this entire block if you don't want the banners.
+try:
+    from banners import title, footer
+    def show_title(): print(title)
+    def show_footer(): print(footer)
+except ImportError:
+    def show_title(): print("\n=== Welcome to the Class Results CLI ===")
+    def show_footer(): print("Goodbye!")
+# [[BANNER-CODE-END]]
 
 def coerce_number(x):
     try:
@@ -11,7 +22,7 @@ def coerce_number(x):
     except (ValueError, TypeError): return np.nan
 
 def sanitize_for_path(name):
-    return str(name).strip().replace("/", "-").replace("\", "-").replace(" ", "_") if name else "UNKNOWN"
+    return str(name).strip().replace("/", "-").replace("\\", "-").replace(" ", "_") if name else "UNKNOWN"
 
 def find_row_with_text(df, text, max_rows=30):
     text_lower = text.lower()
@@ -225,8 +236,10 @@ def view_data_flow():
         else: print(f"{f} not available.")
 
 def plot_graphs_flow(base_dir='user-data'):
-    c_name, e_name, g_type = curses.wrapper(select_from_list, "Select Graph Type", ["Bar Chart", "Line Chart", "Pie Chart", "Horizontal Bar", "Scatter Plot"], "Up/Down, Enter, q to quit.")
-    if not all((c_name, e_name, g_type)): return
+    c_name, e_name = select_class_exam(base_dir)
+    if not (c_name and e_name): return
+    g_type = curses.wrapper(select_from_list, "Select Graph Type", ["Bar Chart", "Line Chart", "Pie Chart", "Horizontal Bar", "Scatter Plot"], "Up/Down, Enter, q to quit.")
+    if not g_type: return
     csv_path = os.path.join(base_dir, c_name, e_name, 'percentage.csv')
     if not os.path.isfile(csv_path):
         print(f"percentage.csv not found for {c_name} - {e_name}")
@@ -241,14 +254,25 @@ def plot_graphs_flow(base_dir='user-data'):
     elif "Scatter" in g_type: plot_chart(df, 'Roll No', 'Overall_Percentage', title, 'Roll Number', 'Percentage (%)', kind='scatter')
 
 def main():
+    # [[BANNER-CODE-START]]
+    show_title()
+    # [[BANNER-CODE-END]]
     actions = {'1': upload_pipeline, '2': group_by_percent_interactive, '3': view_data_flow, '4': plot_graphs_flow}
-    while True:
-        print("\nMenu:\n1.Upload 2.Group 3.View 4.Plot [clear, q]")
-        choice = input("Choice: ").strip().lower()
-        if choice in actions: actions[choice]()
-        elif choice == "clear": os.system('cls' if os.name == 'nt' else 'clear')
-        elif choice in ("q", "quit"): break
-        else: print("Invalid choice.")
+    try:
+        while True:
+            print("\nMenu:\n1.Upload 2.Group 3.View 4.Plot [clear, q]")
+            choice = input("Choice: ").strip().lower()
+            if choice in actions: actions[choice]()
+            elif choice == "clear": os.system('cls' if os.name == 'nt' else 'clear')
+            elif choice in ("q", "quit"): break
+            else: print("Invalid choice.")
+    except KeyboardInterrupt:
+        pass
+    finally:
+        # [[BANNER-CODE-START]]
+        print("Credits:")
+        show_footer()
+        # [[BANNER-CODE-END]]
 
 if __name__ == "__main__":
-    main()
+    main();
