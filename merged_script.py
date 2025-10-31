@@ -353,19 +353,44 @@ def main():
     show_title()
     # [[BANNER-CODE-END]]
     actions = {'1': upload_pipeline, '2': group_by_percent_interactive, '3': view_data_flow, '4': plot_graphs_flow, '5': delete_data_flow}
+    
+    menu_text = (
+        "\n"
+        "    +---------------------------------------+\n"
+        "    |               MAIN MENU               |\n"
+        "    +---------------------------------------+\n"
+        "    | 1. Upload New Excel File              |\n"
+        "    | 2. Group Data by Percentage           |\n"
+        "    | 3. View Class/Exam Data               |\n"
+        "    | 4. Plot Graphs                        |\n"
+        "    | 5. Delete Data                        |\n"
+        "    +---------------------------------------+\n"
+        "    | clear - Clear Screen                  |\n"
+        "    | q     - Quit                          |\n"
+        "    +---------------------------------------+"
+    )
+
     try:
         while True:
-            print("\n    Menu:\n    1.Upload 2.Group 3.View 4.Plot 5.Delete [clear, q]")
-            choice = input("    Choice: ").strip().lower()
-            if choice in actions: actions[choice]()
-            elif choice == "clear": os.system('cls' if os.name == 'nt' else 'clear')
-            elif choice in ("q", "quit"): break
-            else: print("    Invalid choice.")
+            print(menu_text)
+            choice = input("\n    Enter your choice: ").strip().lower()
+            if choice in actions:
+                actions[choice]()
+            elif choice == "clear":
+                os.system('cls' if os.name == 'nt' else 'clear')
+                # [[BANNER-CODE-START]]
+                show_title()
+                # [[BANNER-CODE-END]]
+            elif choice in ("q", "quit"):
+                break
+            else:
+                print("    Invalid choice. Please try again.")
     except KeyboardInterrupt:
+        print("\n    Operation cancelled by user.")
         pass
     finally:
         # [[BANNER-CODE-START]]
-        print("    Credits:")
+        print("\n    Credits:")
         show_footer()
         # [[BANNER-CODE-END]]
 
