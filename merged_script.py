@@ -159,6 +159,17 @@ def select_from_list(stdscr, title, opts, help_text):
         elif key in (curses.KEY_ENTER, 10, 13): return opts[idx]
         elif key in (ord('q'), ord('Q')): return None
 
+def select_with_delete(stdscr, title, opts, help_text):
+    idx = 0
+    while True:
+        draw_menu(stdscr, title, opts, idx, help_text)
+        key = stdscr.getch()
+        if key in (curses.KEY_UP, ord('k')): idx = (idx - 1) % len(opts)
+        elif key in (curses.KEY_DOWN, ord('j')): idx = (idx + 1) % len(opts)
+        elif key in (curses.KEY_ENTER, 10, 13): return opts[idx], 'select'
+        elif key in (ord('d'), ord('D')): return opts[idx], 'delete'
+        elif key in (ord('q'), ord('Q')): return None, None
+
 def select_class_exam(base_dir='user-data'):
     classes = sorted([d for d in os.listdir(base_dir) if os.path.isdir(os.path.join(base_dir, d))])
     if not classes: return None, None
@@ -253,15 +264,58 @@ def plot_graphs_flow(base_dir='user-data'):
         plot_chart(pass_fail, 'Status', 'Count', title, '', '', kind='pie', figsize=(8,8))
     elif "Scatter" in g_type: plot_chart(df, 'Roll No', 'Overall_Percentage', title, 'Roll Number', 'Percentage (%)', kind='scatter')
 
+def delete_data_flow(base_dir='user-data'):
+    classes = sorted([d for d in os.listdir(base_dir) if os.path.isdir(os.path.join(base_dir, d))])
+    if not classes:
+        print("No classes found.")
+        return
+
+    selected_class, action = curses.wrapper(select_with_delete, "Select Class", classes, "Up/Down, Enter to view exams, d to delete class, q to quit.")
+    if not selected_class:
+        return
+
+    if action == 'delete':
+        confirm = input(f"Are you sure you want to permanently delete all data for class '{selected_class}'? [y/N]: ").strip().lower()
+        if confirm == 'y':
+            try:
+                shutil.rmtree(os.path.join(base_dir, selected_class))
+                print(f"Successfully deleted class '{selected_class}'.")
+            except Exception as e:
+                print(f"Error deleting class '{selected_class}': {e}")
+        else:
+            print("Deletion cancelled.")
+        return
+
+    class_path = os.path.join(base_dir, selected_class)
+    exams = sorted([d for d in os.listdir(class_path) if os.path.isdir(os.path.join(class_path, d))])
+    if not exams:
+        print(f"No exams found for class '{selected_class}'.")
+        return
+
+    selected_exam, action = curses.wrapper(select_with_delete, f"Exams for {selected_class}", exams, "Up/Down, d to delete exam, q to quit.")
+    if not selected_exam:
+        return
+
+    if action == 'delete':
+        confirm = input(f"Are you sure you want to permanently delete exam '{selected_exam}' for class '{selected_class}'? [y/N]: ").strip().lower()
+        if confirm == 'y':
+            try:
+                shutil.rmtree(os.path.join(class_path, selected_exam))
+                print(f"Successfully deleted exam '{selected_exam}' for class '{selected_class}'.")
+            except Exception as e:
+                print(f"Error deleting exam '{selected_exam}': {e}")
+        else:
+            print("Deletion cancelled.")
+
 def main():
     # [[BANNER-CODE-START]]
     show_title()
     # [[BANNER-CODE-END]]
-    actions = {'1': upload_pipeline, '2': group_by_percent_interactive, '3': view_data_flow, '4': plot_graphs_flow}
+    actions = {'1': upload_pipeline, '2': group_by_percent_interactive, '3': view_data_flow, '4': plot_graphs_flow, '5': delete_data_flow}
     try:
         while True:
-            print("\nMenu:\n1.Upload 2.Group 3.View 4.Plot [clear, q]")
-            choice = input("Choice: ").strip().lower()
+            print("\n    Menu:\n    1.Upload 2.Group 3.View 4.Plot 5.Delete [clear, q]")
+            choice = input("    Choice: ").strip().lower()
             if choice in actions: actions[choice]()
             elif choice == "clear": os.system('cls' if os.name == 'nt' else 'clear')
             elif choice in ("q", "quit"): break
@@ -270,7 +324,7 @@ def main():
         pass
     finally:
         # [[BANNER-CODE-START]]
-        print("Credits:")
+        print("    Credits:")
         show_footer()
         # [[BANNER-CODE-END]]
 
