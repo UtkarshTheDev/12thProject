@@ -15,6 +15,23 @@ except ImportError:
     def show_footer(): print("    Goodbye!")
 # [[BANNER-CODE-END]]
 
+# --- Curses compatibility check ---
+CURSES_ENABLED = False
+try:
+    # Test if curses can be initialized. This will fail in IDEs like IDLE.
+    if sys.stdout and hasattr(sys.stdout, 'fileno'):
+        stdscr = curses.initscr()
+        curses.endwin()
+        del stdscr
+        CURSES_ENABLED = True
+    else:
+        CURSES_ENABLED = False
+except (curses.error, AttributeError):
+    # Fallback for environments with a non-functional curses or no fileno.
+    CURSES_ENABLED = False
+# --- End Curses compatibility check ---
+
+
 def coerce_number(x):
     try:
         s = str(x).strip()
@@ -246,14 +263,107 @@ def select_with_delete(stdscr, title, opts, help_text):
         elif key in (ord('d'), ord('D')): return opts[idx], 'delete'
         elif key in (ord('q'), ord('Q')): return None, None
 
+def select_from_list_no_curses(title, opts, help_text):
+    print(f"\n    --- {title} ---")
+    for i, opt in enumerate(opts):
+        print(f"    {i+1}. {opt}")
+    print(f"    (Enter 'q' to quit)")
+    
+    while True:
+        choice = input("    Select an option: ").strip().lower()
+        if choice == 'q':
+            return None
+        try:
+            idx = int(choice) - 1
+            if 0 <= idx < len(opts):
+                return opts[idx]
+            else:
+                print("    Invalid number. Please try again.")
+        except ValueError:
+            print("    Please enter a number.")
+
+def select_with_delete_no_curses(title, opts, help_text):
+    print(f"\n    --- {title} ---")
+    for i, opt in enumerate(opts):
+        print(f"    {i+1}. {opt}")
+    print("    (Enter 'd<number>' to delete, e.g., 'd1')")
+    print(f"    (Enter 'q' to quit)")
+
+    while True:
+        choice = input("    Select an option: ").strip().lower()
+        if choice == 'q':
+            return None, None
+        
+        action = 'select'
+        item_choice = choice
+        if choice.startswith('d') and len(choice) > 1:
+            action = 'delete'
+            item_choice = choice[1:]
+
+        try:
+            idx = int(item_choice) - 1
+            if 0 <= idx < len(opts):
+                return opts[idx], action
+            else:
+                print("    Invalid number. Please try again.")
+        except ValueError:
+            print("    Please enter a valid number or command.")
+
+def fuzzy_search_file_select_no_curses():
+    search_term = ""
+    while True:
+        search_term = input("\n    Enter search term to find Excel file (or 'q' to quit): ").strip()
+        if not search_term or search_term.lower() == 'q':
+            return None
+
+        all_files = glob.glob("**/*.xlsx", recursive=True)
+        if not all_files:
+            print("    No .xlsx files found in the current directory or subdirectories.")
+            continue
+            
+        matches = process.extract(search_term, all_files, limit=10)
+        search_results = [match[0] for match in matches if match[1] > 30]
+
+        if not search_results:
+            print("    No matches found.")
+            continue
+
+        print("\n    --- Select a File ---")
+        for i, file_path in enumerate(search_results):
+            print(f"    {i+1}. {file_path}")
+        
+        choice = input("    Select a number (or 'r' to research): ").strip().lower()
+        if choice == 'r':
+            continue
+        try:
+            idx = int(choice) - 1
+            if 0 <= idx < len(search_results):
+                return search_results[idx]
+            else:
+                print("    Invalid number.")
+        except ValueError:
+            print("    Invalid input.")
+
 def select_class_exam(base_dir='user-data'):
     classes = sorted([d for d in os.listdir(base_dir) if os.path.isdir(os.path.join(base_dir, d))])
     if not classes: return None, None
-    s_class = curses.wrapper(select_from_list, "Select Class", classes, "Up/Down, Enter, q to quit.")
+    
+    if CURSES_ENABLED:
+        s_class = curses.wrapper(select_from_list, "Select Class", classes, "Up/Down, Enter, q to quit.")
+    else:
+        s_class = select_from_list_no_curses("Select Class", classes, "Up/Down, Enter, q to quit.")
+        
     if not s_class: return None, None
     exams = sorted([d for d in os.listdir(os.path.join(base_dir, s_class)) if os.path.isdir(os.path.join(base_dir, s_class, d))])
     if not exams: return None, None
-    return s_class, curses.wrapper(select_from_list, f"Exam for {s_class}", exams, "Up/Down, Enter, q to quit.")
+
+    if CURSES_ENABLED:
+        s_exam = curses.wrapper(select_from_list, f"Exam for {s_class}", exams, "Up/Down, Enter, q to quit.")
+    else:
+        s_exam = select_from_list_no_curses(f"Exam for {s_class}", exams, "Up/Down, Enter, q to quit.")
+        
+    return s_class, s_exam
+
 
 def group_by_percent(csv_path):
     df = pd.read_csv(csv_path)
@@ -346,8 +456,11 @@ def fuzzy_search_file_select(stdscr):
             selected_index = 0
 
 def upload_pipeline():
-    fpath = curses.wrapper(fuzzy_search_file_select)
-    
+    if CURSES_ENABLED:
+        fpath = curses.wrapper(fuzzy_search_file_select)
+    else:
+        fpath = fuzzy_search_file_select_no_curses()
+
     if not fpath:
         print("    File selection cancelled.")
         return
@@ -381,7 +494,12 @@ def view_data_flow():
     if not (s_class and s_exam): return
     base_path = os.path.join('user-data', s_class, s_exam)
     opts = ["Percentage", "Grouped", "Full Result", "All"]
-    dtype = curses.wrapper(select_from_list, "Select Data to View", opts, "Up/Down, Enter, q to quit.")
+    
+    if CURSES_ENABLED:
+        dtype = curses.wrapper(select_from_list, "Select Data to View", opts, "Up/Down, Enter, q to quit.")
+    else:
+        dtype = select_from_list_no_curses("Select Data to View", opts, "Up/Down, Enter, q to quit.")
+
     if not dtype: return
     files = {"Percentage": ["percentage.csv"], "Grouped": ["grouped.csv"], "Full Result": ["result.csv"], "All": ["percentage.csv", "result.csv", "grouped.csv"]}
     for f in files.get(dtype, []):
@@ -392,7 +510,13 @@ def view_data_flow():
 def plot_graphs_flow(base_dir='user-data'):
     c_name, e_name = select_class_exam(base_dir)
     if not (c_name and e_name): return
-    g_type = curses.wrapper(select_from_list, "Select Graph Type", ["Bar Chart", "Line Chart", "Scatter Plot"], "Up/Down, Enter, q to quit.")
+    
+    opts = ["Bar Chart", "Line Chart", "Scatter Plot"]
+    if CURSES_ENABLED:
+        g_type = curses.wrapper(select_from_list, "Select Graph Type", opts, "Up/Down, Enter, q to quit.")
+    else:
+        g_type = select_from_list_no_curses("Select Graph Type", opts, "Up/Down, Enter, q to quit.")
+
     if not g_type: return
     csv_path = os.path.join(base_dir, c_name, e_name, 'percentage.csv')
     if not os.path.isfile(csv_path):
@@ -410,7 +534,11 @@ def delete_data_flow(base_dir='user-data'):
         print("    No classes found.")
         return
 
-    selected_class, action = curses.wrapper(select_with_delete, "Select Class", classes, "Up/Down, Enter to view exams, d to delete class, q to quit.")
+    if CURSES_ENABLED:
+        selected_class, action = curses.wrapper(select_with_delete, "Select Class", classes, "Up/Down, Enter to view exams, d to delete class, q to quit.")
+    else:
+        selected_class, action = select_with_delete_no_curses("Select Class", classes, "Up/Down, Enter to view exams, d to delete class, q to quit.")
+
     if not selected_class:
         return
 
@@ -432,7 +560,11 @@ def delete_data_flow(base_dir='user-data'):
         print(f"    No exams found for class '{selected_class}'.")
         return
 
-    selected_exam, action = curses.wrapper(select_with_delete, f"Exams for {selected_class}", exams, "Up/Down, d to delete exam, q to quit.")
+    if CURSES_ENABLED:
+        selected_exam, action = curses.wrapper(select_with_delete, f"Exams for {selected_class}", exams, "Up/Down, d to delete exam, q to quit.")
+    else:
+        selected_exam, action = select_with_delete_no_curses(f"Exams for {selected_class}", exams, "Up/Down, d to delete exam, q to quit.")
+
     if not selected_exam:
         return
 
