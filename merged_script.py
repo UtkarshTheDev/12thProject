@@ -1,11 +1,11 @@
-import os, sys, shutil, curses
+import os, sys, shutil, curses, glob
+from thefuzz import process
 from pathlib import Path
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 # [[BANNER-CODE-START]]
 # This section imports and displays the title and footer banners.
-# You can safely remove this entire block if you don't want the banners.
 try:
     from banners import title, footer
     def show_title(): print(title)
@@ -283,9 +283,77 @@ def plot_chart(df, x, y, title, xl, yl, kind='bar', rot=45, figsize=(12,6), **kw
     plt.xticks(rotation=rot, ha='right'); plt.ylim(0, 100); plt.grid(axis='y', alpha=0.3)
     plt.tight_layout(); plt.show()
 
+def fuzzy_search_file_select(stdscr):
+    search_term = ""
+    selected_index = 0
+    all_files = glob.glob("**/*.xlsx", recursive=True)
+    search_results = []
+    
+    curses.curs_set(1)
+    stdscr.nodelay(0)
+
+    while True:
+        stdscr.clear()
+        
+        # Display Title and Search Prompt
+        stdscr.addstr(1, 2, "Search for an Excel File")
+        stdscr.addstr(2, 2, "Type to search, Up/Down to navigate, Enter to select, 'q' to quit.")
+        stdscr.addstr(4, 4, f"Search: {search_term}")
+
+        # Perform search if search_term is not empty
+        if search_term:
+            matches = process.extract(search_term, all_files, limit=10)
+            search_results = [match for match in matches if match[1] > 30]
+        else:
+            search_results = []
+
+        # Display search results
+        if search_results:
+            display_line = 6
+            for i, (file_path, score) in enumerate(search_results):
+                filename = os.path.basename(file_path)
+                display_text = f"{filename} ({score}%)"
+                
+                if i == selected_index:
+                    stdscr.addstr(display_line, 2, f"> {display_text}", curses.A_REVERSE)
+                else:
+                    stdscr.addstr(display_line, 2, f"  {display_text}")
+                display_line += 1
+                stdscr.addstr(display_line, 6, f"Path: {file_path}") # Indented path
+                display_line += 2 # Extra line for spacing
+        elif search_term:
+            stdscr.addstr(6, 2, "  No matches found.")
+
+        stdscr.move(4, 12 + len(search_term)) # Move cursor to end of search term
+        stdscr.refresh()
+
+        key = stdscr.getch()
+
+        if key in (curses.KEY_ENTER, 10, 13):
+            if search_results:
+                return search_results[selected_index][0]
+        elif key == curses.KEY_UP:
+            selected_index = max(0, selected_index - 1)
+        elif key == curses.KEY_DOWN:
+            selected_index = min(len(search_results) - 1, selected_index + 1)
+        elif key in (curses.KEY_BACKSPACE, 127, 8):
+            search_term = search_term[:-1]
+            selected_index = 0
+        elif key in (ord('q'), ord('Q'), 27): # 27 is escape key
+            return None
+        elif 32 <= key <= 126: # Printable characters
+            search_term += chr(key)
+            selected_index = 0
+
 def upload_pipeline():
-    fpath = input("Excel file path: ").strip()
-    if not fpath: return
+    fpath = curses.wrapper(fuzzy_search_file_select)
+    
+    if not fpath:
+        print("    File selection cancelled.")
+        return
+
+    print(f"    Selected file: {fpath}")
+
     try:
         sheets = pd.ExcelFile(fpath).sheet_names
         print("    Sheets:", ", ".join(sheets))
@@ -293,7 +361,8 @@ def upload_pipeline():
         s_dir = input("    Save directory ('user-data'): ").strip() or "user-data"
         out = save_results_to_csv(fpath, sheet_name=sheet, base_dir=s_dir)
         print(f"    Saved to: {out}")
-    except Exception as e: print(f"    Error: {e}")
+    except Exception as e:
+        print(f"    Error: {e}")
 
 def group_by_percent_interactive():
     s_class, s_exam = select_class_exam('user-data')
