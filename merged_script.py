@@ -5,14 +5,29 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 # [[BANNER-CODE-START]]
-# This section imports and displays the title and footer banners.
-try:
-    from banners import title, footer
-    def show_title(): print(title)
-    def show_footer(): print(footer)
-except ImportError:
-    def show_title(): print("\n    === Welcome to the Class Results CLI ===")
-    def show_footer(): print("    Goodbye!")
+# This section contains the title and footer banners.
+title = '''
+    ██████╗ ███████╗███████╗██╗   ██╗██╗  ████████╗     █████╗ ███╗   ██╗ █████╗ ██╗  ██╗   ██╗███████╗██╗███████╗
+    ██╔══██╗██╔════╝██╔════╝██║   ██║██║  ╚══██╔══╝    ██╔══██╗████╗  ██║██╔══██╗██║  ╚██╗ ██╔╝██╔════╝██║██╔════╝
+    ██████╔╝█████╗  ███████╗██║   ██║██║     ██║       ███████║██╔██╗ ██║███████║██║   ╚████╔╝ ███████╗██║███████╗
+    ██╔══██╗██╔══╝  ╚════██║██║   ██║██║     ██║       ██╔══██║██║╚██╗██║██╔══██║██║    ╚██╔╝  ╚════██║██║╚════██║
+    ██║  ██║███████╗███████║╚██████╔╝███████╗██║       ██║  ██║██║ ╚████║██║  ██║███████╗██║   ███████║██║███████║
+    ╚═╝  ╚═╝╚══════╝╚══════╝ ╚═════╝ ╚══════╝╚═╝       ╚═╝  ╚═╝╚═╝  ╚═══╝╚═╝  ╚═╝╚══════╝╚═╝   ╚══════╝╚═╝╚══════╝
+'''
+
+footer = '''
+     /$$$$$$$$ /$$$$$$$$         /$$$$$$  /$$   /$$ /$$      /$$ /$$$$$$ /$$$$$$$$ /$$$$$$         /$$$$$$  /$$$$$$$   /$$$$$$  /$$$$$$$   /$$$$$$ 
+    | $$_____/|__  $$__/        /$$__  $$| $$  | $$| $$$    /$$$|_  $$_/|__  $$__//$$__  $$       /$$__  $$| $$__  $$ /$$__  $$| $$__  $$ /$$__  $$
+    | $$         | $$          | $$  \__/| $$  | $$| $$$$  /$$$$  | $$     | $$  | $$  \ $$      | $$  \ $$| $$  \ $$| $$  \ $$| $$  \ $$| $$  \ $$
+    | $$$$$      | $$          |  $$$$$$ | $$  | $$| $$ $$/$$ $$  | $$     | $$  | $$$$$$$$      | $$$$$$$$| $$$$$$$/| $$  | $$| $$$$$$$/| $$$$$$$$
+    | $$__/      | $$           \____  $$| $$  | $$| $$  $$$| $$  | $$     | $$  | $$__  $$      | $$__  $$| $$__  $$| $$  | $$| $$__  $$| $$__  $$
+    | $$         | $$           /$$  \ $$| $$  | $$| $$\  $ | $$  | $$     | $$  | $$  | $$      | $$  | $$| $$  \ $$| $$  | $$| $$  \ $$| $$  | $$
+    | $$         | $$ /$$      |  $$$$$$/|  $$$$$$/| $$ \/  | $$ /$$$$$$   | $$  | $$  | $$      | $$  | $$| $$  | $$|  $$$$$$/| $$  | $$| $$  | $$
+    |__/         |__/|__/       \______/  \______/ |__/     |__/|______/   |__/  |__/  |__/      |__/  |__/|__/  |__/ \______/ |__/  |__/|__/  |__/
+   
+'''
+def show_title(): print(title)
+def show_footer(): print(footer)
 # [[BANNER-CODE-END]]
 
 # --- Curses compatibility check ---
@@ -123,8 +138,8 @@ def extract_class_results(file_path, sheet_name=None):
     if isinstance(df, dict): df = next(iter(df.values()))
     header_row, class_row, exam_row = find_header_and_meta_rows(df)
     if header_row is None: raise ValueError("Header row not found.")
-    exam_name, per_subject_out_of = parse_exam_and_outof(df, exam_row)
-    per_subject_out_of = per_subject_out_of or 100
+    exam_name, _ = parse_exam_and_outof(df, exam_row)
+    per_subject_out_of = 100
     class_name = parse_class_name(df, class_row)
     subjects, subject_to_cols, total_col, per_col = detect_subject_columns(df, header_row)
     students = []
@@ -139,16 +154,22 @@ def extract_class_results(file_path, sheet_name=None):
         marks, subject_percentages = {}, {}
         for s in subjects:
             cols = subject_to_cols[s]
-            marks[s] = coerce_number(row.iloc[cols.get("marks")]) if cols.get("marks") is not None else np.nan
-            subject_percentages[s] = coerce_number(row.iloc[cols.get("percent")]) if cols.get("percent") is not None and cols.get("percent") < len(row) else np.nan
+            marks_val = coerce_number(row.iloc[cols.get("marks")]) if cols.get("marks") is not None and cols.get("marks") < len(row) else np.nan
+            marks[s] = marks_val
+            
+            percent_val = np.nan
+            if not np.isnan(marks_val):
+                percent_val = round((marks_val / per_subject_out_of) * 100, 2)
+            subject_percentages[s] = percent_val
 
-        total = coerce_number(row.iloc[total_col]) if total_col is not None else np.nan
-        if np.isnan(total):
-            total = np.nansum(list(marks.values()))
+        valid_marks_values = [m for m in marks.values() if not np.isnan(m)]
+        total = np.nansum(valid_marks_values)
 
-        percent = coerce_number(row.iloc[per_col]) if per_col is not None else np.nan
-        if np.isnan(percent) and per_subject_out_of and subjects:
-            denom = per_subject_out_of * len(subjects)
+        num_valid_subjects = len(valid_marks_values)
+        
+        percent = np.nan
+        if num_valid_subjects > 0:
+            denom = per_subject_out_of * num_valid_subjects
             if denom > 0:
                 percent = round((total / denom) * 100, 2)
 
@@ -164,7 +185,8 @@ def extract_class_results(file_path, sheet_name=None):
         "per_subject_out_of": per_subject_out_of, "students": students
     }
     if per_subject_out_of and subjects:
-        result["total_out_of"] = per_subject_out_of * len(subjects)
+        num_subjects = len(subjects)
+        result["total_out_of"] = per_subject_out_of * num_subjects
     return result
 
 def results_to_dfs(parsed):
@@ -205,9 +227,9 @@ def display_df(df, title):
     # Create a copy to avoid modifying the original DataFrame
     df_display = df.copy()
 
-    # Format float columns to two decimal places
+    # Format float columns to integers
     for col in df_display.select_dtypes(include=['float64']).columns:
-        df_display[col] = df_display[col].apply(lambda x: f"{x:.2f}" if pd.notna(x) else "")
+        df_display[col] = df_display[col].apply(lambda x: str(int(round(x))) if pd.notna(x) else "")
 
     # Convert all columns to string type for consistent width calculation
     for col in df_display.columns:
@@ -583,6 +605,11 @@ def main():
     # [[BANNER-CODE-START]]
     show_title()
     # [[BANNER-CODE-END]]
+    
+    # --- Create user-data directory if it doesn't exist ---
+    if not os.path.exists('user-data'):
+        os.makedirs('user-data')
+        
     actions = {'1': upload_pipeline, '2': group_by_percent_interactive, '3': view_data_flow, '4': plot_graphs_flow, '5': delete_data_flow}
     
     menu_text = (
