@@ -4,7 +4,7 @@ import shutil
 import sys
 import pandas as pd
 
-import banners
+from ui import banners
 from ui.select_data import (
     select_with_delete,
     select_with_delete_no_curses,
