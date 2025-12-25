@@ -292,8 +292,8 @@ def save_results_to_csv(file_path, sheet_name=None, base_dir="user-data"):
 
 
 def export_df_to_excel(df, fname="export.xlsx"):
-    if input("Save to Excel? (y/n): ").strip().lower() in ("y", "yes"):
-        name = input(f"Filename ('{fname}'): ").strip() or fname
+    if input("    Save to Excel? (y/n): ").strip().lower() in ("y", "yes"):
+        name = input(f"    Filename ('{fname}'): ").strip() or fname
         out_path = name if name.lower().endswith(".xlsx") else name + ".xlsx"
         try:
             df.to_excel(out_path, index=False)
@@ -521,7 +521,7 @@ def select_class_exam(base_dir="user-data"):
 
 def group_by_percent(csv_path):
     df = pd.read_csv(csv_path)
-    user_input = input("Custom grouping (e.g., 90,80,33) or Enter for default: ")
+    user_input = input("    Custom grouping (e.g., 90,80,33) or Enter for default: ")
     thresholds = sorted(
         [int(t) for t in user_input.split(",")]
         if user_input
