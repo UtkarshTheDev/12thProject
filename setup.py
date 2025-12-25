@@ -4,6 +4,10 @@ setup(
     name="result-analysis",
     version="0.1.0",
     packages=find_packages(),
+    include_package_data=True,
+    package_data={
+        "data": ["samples/*.xlsx"],
+    },
     py_modules=["main"],
     install_requires=[
         "pandas>=1.3.0",
@@ -16,6 +20,8 @@ setup(
     entry_points={
         "console_scripts": [
             "result-analysis=main:main",
+            "rsa=main:main",
+            "rta=main:main",
         ],
     },
     author="Utkarsh Tiwari",

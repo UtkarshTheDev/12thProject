@@ -4,6 +4,7 @@ import shutil
 import sys
 import pandas as pd
 
+import data  # Needed to locate samples
 from ui import banners
 from ui.select_data import (
     select_with_delete,
@@ -134,7 +135,50 @@ def delete_data_flow(base_dir="user-data"):
             print("    Deletion cancelled.")
 
 
+def download_samples():
+    """Downloads sample Excel files to the current working directory."""
+    try:
+        # Locate the samples directory within the data package
+        if not data.__file__:
+            print("Error: Could not locate data package.")
+            return
+
+        data_dir = os.path.dirname(data.__file__)
+        samples_src = os.path.join(data_dir, "samples")
+
+        if not os.path.exists(samples_src):
+            print(f"Error: Samples directory not found at {samples_src}")
+            return
+
+        dest_dir = os.path.join(os.getcwd(), "samples")
+
+        if os.path.exists(dest_dir):
+            print(f"Warning: 'samples' directory already exists in {os.getcwd()}")
+            choice = input("    Overwrite? [y/N]: ").strip().lower()
+            if choice != "y":
+                print("    Aborted.")
+                return
+            shutil.rmtree(dest_dir)
+
+        shutil.copytree(samples_src, dest_dir)
+        print(f"Success: Sample files downloaded to {dest_dir}")
+        print("You can now use these files to test the application.")
+    except Exception as e:
+        print(f"Error downloading samples: {e}")
+
+
 def main():
+    # Check for CLI commands
+    if len(sys.argv) > 1:
+        if sys.argv[1] == "download" and len(sys.argv) > 2 and sys.argv[2] == "samples":
+            download_samples()
+            return
+        elif sys.argv[1] in ("--help", "-h"):
+            print("Usage:")
+            print("  result-analysis                  # Run interactive mode")
+            print("  result-analysis download samples # Download sample Excel files")
+            return
+
     banners.show_title()
 
     # --- Create user-data directory if it doesn't exist ---
