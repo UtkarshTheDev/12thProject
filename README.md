@@ -44,12 +44,24 @@ You can install the package directly from the source code.
 
 ## Usage
 
-Once installed, you can run the application from anywhere using the command:
+Once installed, you can run the application from anywhere using the main command or its shortcuts (`rsa`, `rta`):
 
 ```bash
 result-analysis
+# OR
+rsa
+# OR
+rta
 ```
 
+### Download Samples
+To download sample Excel files for testing:
+```bash
+rsa download samples
+```
+This will create a `samples/` folder in your current working directory containing test data (`IIIA.xlsx`, etc.).
+
+### Running the App
 Alternatively, you can run it as a Python module:
 
 ```bash
