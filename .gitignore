@@ -1,8 +1,46 @@
-# data/sample/*
-user-data/*
+# General Python
+__pycache__/
+*.py[cod]
+*$py.class
 
-# ignore every __pycache__ folder
-__pycache__
+# Distribution / Packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
 
-# ignore evey xlsx file except stored in the data folder
+# Virtual Environments
+venv/
+env/
+ENV/
+.venv/
+
+# User Data (Runtime generated)
+user-data/
+samples/
+
+# Logs and databases
+*.log
+*.sqlite
+
+# IDE settings
+.idea/
+.vscode/
+
+# Excel files
 *.xlsx
+# Exception: Track the sample files bundled with the package
+!data/samples/*.xlsx
