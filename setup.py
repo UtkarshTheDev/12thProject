@@ -1,10 +1,10 @@
 from setuptools import setup, find_packages
 
 setup(
-    name="student-result-manager",
+    name="result-analysis",
     version="0.1.0",
     packages=find_packages(),
-    py_modules=["student_result_manager", "banners"],
+    py_modules=["main"],
     install_requires=[
         "pandas>=1.3.0",
         "matplotlib>=3.4.0",
@@ -15,7 +15,7 @@ setup(
     ],
     entry_points={
         "console_scripts": [
-            "student-result-manager=student_result_manager:main",
+            "result-analysis=main:main",
         ],
     },
     author="Utkarsh Tiwari",

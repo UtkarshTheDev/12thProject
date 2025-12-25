@@ -1,4 +1,4 @@
-# Student Result Management System (Class 12th CS Project)
+# Result Analysis (Class 12th CS Project)
 
 A comprehensive Python application designed to analyze, manage, and visualize student examination results from Excel sheets. This project parses raw result data, organizes it, and provides tools for statistical analysis and graphical representation.
 
@@ -47,13 +47,13 @@ You can install the package directly from the source code.
 Once installed, you can run the application from anywhere using the command:
 
 ```bash
-student-result-manager
+result-analysis
 ```
 
 Alternatively, you can run it as a Python module:
 
 ```bash
-python -m student_result_manager
+python -m main
 ```
 
 1. Place your raw Result Excel files (`.xlsx`) in the directory where you are running the command.
@@ -66,10 +66,9 @@ python -m student_result_manager
 
 ## Project Structure
 
-- `student_result_manager/`: The main package containing source code.
-  - `main.py`: Entry point.
-  - `data/`: Data parsing and handling logic.
-  - `ui/`: User interface components.
-  - `graphs/`: Plotting and visualization logic.
-  - `group/`: Grouping logic.
+- `main.py`: Entry point.
+- `data/`: Data parsing and handling logic.
+- `ui/`: User interface components.
+- `graphs/`: Plotting and visualization logic.
+- `group/`: Grouping logic.
 - `user-data/`: Automatically generated directory where processed CSV files are stored, organized by Class and Exam.
