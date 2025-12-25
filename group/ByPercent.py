@@ -1,9 +1,9 @@
 import pandas as pd
 import os
 from pathlib import Path
-from ..ui.view_data import display_df
-from ..ui.select_data import select_class_exam
-from ..data.exporter import export_df_to_excel
+from ui.view_data import display_df
+from ui.select_data import select_class_exam
+from data.exporter import export_df_to_excel
 
 
 def group_by_percent(csv_path):

@@ -1,7 +1,7 @@
 import os
 import pandas as pd
 import curses
-from ..ui.select_data import (
+from ui.select_data import (
     select_class_exam,
     select_from_list,
     select_from_list_no_curses,
