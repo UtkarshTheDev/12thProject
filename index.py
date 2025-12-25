@@ -1,122 +1,188 @@
+import curses
+import os
+import shutil
 import sys
-from typing import Optional, Tuple
+import pandas as pd
 
-# Import the two main flows
-try:
-    from data.handler import run_pipeline as run_upload_pipeline
-except Exception as e:
-    print("Warning: Could not import upload pipeline from data/handler.py:", e)
-    run_upload_pipeline = None
-
-try:
-    from group.ByPercent import run_groupByPercent_interactive
-except Exception as e:
-    print("Warning: Could not import grouped marks flow from group/ByPercent.py:", e)
-    run_groupByPercent_interactive = None
-
-try:
-    from ui.view_data import run_view_data
-except Exception as e:
-    print("Warning: Could not import view data flow from ui/view_data.py:", e)
-    run_view_data = None
-
-try:
-    from graphs.plot_data import run_plot_data
-except Exception as e:
-    print("Warning: Could not import plot data flow from graphs/plot_data.py:", e)
-    run_plot_data = None
-
-
-WELCOME = (
-    "\n=== Welcome to the Class Results CLI ===\n"
-    "This tool helps you:\n"
-    "  1) Upload/parse Excel data and save CSV outputs\n"
-    "  2) View grouped marks (by percentage)\n"
-    "  3) View class data (percentage/grouped/results)\n"
-    "  4) Plot graphs and charts from class exam data\n"
+import banners
+from ui.select_data import (
+    select_with_delete,
+    select_with_delete_no_curses,
+    fuzzy_search_file_select,
+    fuzzy_search_file_select_no_curses,
+    CURSES_ENABLED,
 )
-
-MENU = (
-    "\nMain Menu:\n"
-    "  [1] Upload Excel data (run data/handler.py pipeline)\n"
-    "  [2] See grouped marks data (run group/ByPercent.py interactive)\n"
-    "  [3] View class data (percentage/grouped/results)\n"
-    "  [4] Plot graphs and charts (visualize exam data)\n"
-    "  [q] Quit\n"
-)
+from ui.view_data import view_data_flow
+from data.saver import save_results_to_csv
+from graphs.plot_data import plot_graphs_flow
+from group.ByPercent import group_by_percent_interactive
 
 
-def prompt_choice() -> str:
+def upload_pipeline():
+    if CURSES_ENABLED:
+        fpath = curses.wrapper(fuzzy_search_file_select)
+    else:
+        fpath = fuzzy_search_file_select_no_curses()
+
+    if not fpath:
+        print("    File selection cancelled.")
+        return
+
+    print(f"    Selected file: {fpath}")
+
     try:
-        choice = input("Enter your choice (1/2/3/4 or q to quit): ").strip().lower()
-        # Treat 'esc' as going back to menu (same as pressing Enter here)
-        if choice == "esc":
-            return ""
-        return choice
-    except EOFError:
-        return "q"
-    except KeyboardInterrupt:
-        print("\nExiting...")
-        return "q"
+        sheets = pd.ExcelFile(fpath).sheet_names
+        print("    Sheets:", ", ".join(sheets))
+        sheet = input("    Sheet name (Enter for first): ").strip() or 0
+        s_dir = "user-data"
+        print("    Class data stored on the user-data folder")
+        out = save_results_to_csv(fpath, sheet_name=sheet, base_dir=s_dir)
+        print(f"    Saved to: {out}")
+    except Exception as e:
+        print(f"    Error: {e}")
 
 
-def run_upload_flow():
-    if run_upload_pipeline is None:
-        print("Upload pipeline is unavailable due to an import error.")
+def delete_data_flow(base_dir="user-data"):
+    classes = sorted(
+        [d for d in os.listdir(base_dir) if os.path.isdir(os.path.join(base_dir, d))]
+    )
+    if not classes:
+        print("    No classes found.")
         return
-    print("\n--- Upload/Parse Excel Data ---")
-    run_upload_pipeline()
-    print("\nUpload flow finished. Returning to main menu...")
 
+    if CURSES_ENABLED:
+        selected_class, action = curses.wrapper(
+            select_with_delete,
+            "Select Class",
+            classes,
+            "Up/Down, Enter to view exams, d to delete class, q to quit.",
+        )
+    else:
+        selected_class, action = select_with_delete_no_curses(
+            "Select Class",
+            classes,
+            "Up/Down, Enter to view exams, d to delete class, q to quit.",
+        )
 
-def run_grouped_marks_flow():
-    if run_groupByPercent_interactive is None:
-        print("Grouped marks flow is unavailable due to an import error.")
+    if not selected_class:
         return
-    print("\n--- Grouped Marks (By Percent) ---")
-    df, summary = run_groupByPercent_interactive()
-    # Whether or not a file was selected, we return to main menu afterwards.
-    print("\nGrouped marks flow finished. Returning to main menu...")
 
-
-def run_view_data_flow():
-    if run_view_data is None:
-        print("View data flow is unavailable due to an import error.")
+    if action == "delete":
+        confirm = (
+            input(
+                f"    Are you sure you want to permanently delete all data for class '{selected_class}'? [y/N]: "
+            )
+            .strip()
+            .lower()
+        )
+        if confirm == "y":
+            try:
+                shutil.rmtree(os.path.join(base_dir, selected_class))
+                print(f"    Successfully deleted class '{selected_class}'.")
+            except Exception as e:
+                print(f"    Error deleting class '{selected_class}': {e}")
+        else:
+            print("    Deletion cancelled.")
         return
-    run_view_data()
-    print("\nView data flow finished. Returning to main menu...")
 
-
-def run_plot_data_flow():
-    if run_plot_data is None:
-        print("Plot data flow is unavailable due to an import error.")
+    class_path = os.path.join(base_dir, selected_class)
+    exams = sorted(
+        [
+            d
+            for d in os.listdir(class_path)
+            if os.path.isdir(os.path.join(class_path, d))
+        ]
+    )
+    if not exams:
+        print(f"    No exams found for class '{selected_class}'.")
         return
-    print("\n--- Plot Graphs and Charts ---")
-    run_plot_data()
-    print("\nPlot data flow finished. Returning to main menu...")
+
+    if CURSES_ENABLED:
+        selected_exam, action = curses.wrapper(
+            select_with_delete,
+            f"Exams for {selected_class}",
+            exams,
+            "Up/Down, d to delete exam, q to quit.",
+        )
+    else:
+        selected_exam, action = select_with_delete_no_curses(
+            f"Exams for {selected_class}",
+            exams,
+            "Up/Down, d to delete exam, q to quit.",
+        )
+
+    if not selected_exam:
+        return
+
+    if action == "delete":
+        confirm = (
+            input(
+                f"    Are you sure you want to permanently delete exam '{selected_exam}' for class '{selected_class}'? [y/N]: "
+            )
+            .strip()
+            .lower()
+        )
+        if confirm == "y":
+            try:
+                shutil.rmtree(os.path.join(class_path, selected_exam))
+                print(
+                    f"    Successfully deleted exam '{selected_exam}' for class '{selected_class}'."
+                )
+            except Exception as e:
+                print(f"    Error deleting exam '{selected_exam}': {e}")
+        else:
+            print("    Deletion cancelled.")
 
 
 def main():
-    print(WELCOME)
-    while True:
-        print(MENU)
-        choice = prompt_choice()
-        if choice in ("q", "quit", "exit"):
-            print("Goodbye!")
-            break
-        elif choice == "1":
-            run_upload_flow()
-        elif choice == "2":
-            run_grouped_marks_flow()
-        elif choice == "3":
-            run_view_data_flow()
-        elif choice == "4":
-            run_plot_data_flow()
-        elif choice == "":
-            # Treat empty or 'esc' as re-show menu
-            continue
-        else:
-            print("Invalid choice. Please select 1, 2, 3, 4, or q.")
+    banners.show_title()
+
+    # --- Create user-data directory if it doesn't exist ---
+    if not os.path.exists("user-data"):
+        os.makedirs("user-data")
+
+    actions = {
+        "1": upload_pipeline,
+        "2": group_by_percent_interactive,
+        "3": view_data_flow,
+        "4": plot_graphs_flow,
+        "5": delete_data_flow,
+    }
+
+    menu_text = (
+        "\n"
+        "    +---------------------------------------+\n"
+        "    |               MAIN MENU               |\n"
+        "    +---------------------------------------+\n"
+        "    | 1. Upload New Excel File              |\n"
+        "    | 2. Group Data by Percentage           |\n"
+        "    | 3. View Class/Exam Data               |\n"
+        "    | 4. Plot Graphs                        |\n"
+        "    | 5. Delete Data                        |\n"
+        "    +---------------------------------------+\n"
+        "    | clear - Clear Screen                  |\n"
+        "    | q     - Quit                          |\n"
+        "    +---------------------------------------+"
+    )
+
+    try:
+        while True:
+            print(menu_text)
+            choice = input("\n    Enter your choice: ").strip().lower()
+            if choice in actions:
+                actions[choice]()
+            elif choice == "clear":
+                os.system("cls" if os.name == "nt" else "clear")
+                banners.show_title()
+            elif choice in ("q", "quit"):
+                break
+            else:
+                print("    Invalid choice. Please try again.")
+    except KeyboardInterrupt:
+        print("\n    Operation cancelled by user.")
+        pass
+    finally:
+        banners.show_footer()
 
 
 if __name__ == "__main__":
