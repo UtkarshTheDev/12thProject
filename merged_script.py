@@ -660,7 +660,8 @@ def upload_pipeline():
         sheets = pd.ExcelFile(fpath).sheet_names
         print("    Sheets:", ", ".join(sheets))
         sheet = input("    Sheet name (Enter for first): ").strip() or 0
-        s_dir = input("    Save directory ('user-data'): ").strip() or "user-data"
+        s_dir = "user-data"
+        print("    Class data stored on the user-data folder")
         out = save_results_to_csv(fpath, sheet_name=sheet, base_dir=s_dir)
         print(f"    Saved to: {out}")
     except Exception as e:
