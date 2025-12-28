@@ -7,6 +7,9 @@ from .select_data import (
     select_from_list_no_curses,
     CURSES_ENABLED,
 )
+from group.ByPercent import group_by_percent
+from data.exporter import export_df_to_excel
+from pathlib import Path
 
 
 def display_df(df, title):
@@ -84,4 +87,40 @@ def view_data_flow():
         if os.path.isfile(fpath):
             display_df(pd.read_csv(fpath), f.replace(".csv", " Data").title())
         else:
-            print(f"    {f} not available.")
+            if f == "grouped.csv":
+                print(f"    {f} not available.")
+                choice = (
+                    input("    Would you like to generate grouped data now? [y/N]: ")
+                    .strip()
+                    .lower()
+                )
+                if choice == "y":
+                    path = os.path.join(base_path, "percentage.csv")
+                    if not os.path.isfile(path):
+                        print(
+                            f"    Error: 'percentage.csv' not found, cannot generate grouped data."
+                        )
+                        continue
+
+                    _, summary_df = group_by_percent(path)
+
+                    # Ask to save
+                    save_choice = (
+                        input(
+                            "    Do you want to save this grouped data to Excel/CSV? [y/N]: "
+                        )
+                        .strip()
+                        .lower()
+                    )
+                    if save_choice == "y":
+                        (Path(path).parent / "grouped.csv").write_text(
+                            summary_df.to_csv(index=False)
+                        )
+                        export_df_to_excel(summary_df, fname="grouped.xlsx")
+                        print("    Saved grouped.csv and grouped.xlsx")
+                else:
+                    print(
+                        "    You can generate it later using Option 2 (Group Data by Percentage)."
+                    )
+            else:
+                print(f"    {f} not available.")

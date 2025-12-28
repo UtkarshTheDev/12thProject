@@ -25,9 +25,14 @@ Ensure you have Python installed. The project relies on the following external l
 
 ## Installation
 
-You can install the package directly from the source code.
+You can install the package easily using pip:
 
-1. Clone this repository or download the source code.
+```bash
+pip install result-analysis
+```
+
+### From Source
+1. Clone this repository.
 2. Navigate to the project directory.
 3. Install using pip:
 
