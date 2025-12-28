@@ -30,7 +30,7 @@ ENV/
 
 # User Data (Runtime generated)
 user-data/
-samples/
+/samples/
 
 # Logs and databases
 *.log
