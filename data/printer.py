@@ -63,3 +63,49 @@ def print_class_results(file_path, sheet_name=None):
     # It's a shortcut to do both extraction and printing.
     data = extract_class_results(file_path, sheet_name=sheet_name)
     print_parsed_summary(data)
+
+
+def display_df(df, title):
+    # Create a copy to avoid modifying the original DataFrame
+    df_display = df.copy()
+
+    # Format float columns to integers
+    for col in df_display.select_dtypes(include=["float64"]).columns:
+        df_display[col] = df_display[col].apply(
+            lambda x: str(int(round(x))) if pd.notna(x) else ""
+        )
+
+    # Convert all columns to string type for consistent width calculation
+    for col in df_display.columns:
+        df_display[col] = df_display[col].astype(str)
+
+    # Calculate the maximum width for each column
+    col_widths = {
+        col: max(len(col), df_display[col].str.len().max())
+        for col in df_display.columns
+    }
+
+    # Create the header string with padding and a separator
+    header = " | ".join(
+        f"{col.upper():<{col_widths[col]}}" for col in df_display.columns
+    )
+    separator = "-+-".join("-" * col_widths[col] for col in df_display.columns)
+
+    # Print the title centered above the table
+    table_width = len(header)
+    print(f"\n    {title.upper().center(table_width)}")
+    print(f"    {'=' * table_width}")
+
+    # Print the header and separator
+    print(f"    {header}")
+    print(f"    {separator}")
+
+    # Print each row with proper padding
+    for _, row in df_display.iterrows():
+        row_str = " | ".join(
+            f"{row[col]:<{col_widths[col]}}" for col in df_display.columns
+        )
+        print(f"    {row_str}")
+
+    # Print the bottom border of the table
+    print(f"    {'=' * table_width}\n")
